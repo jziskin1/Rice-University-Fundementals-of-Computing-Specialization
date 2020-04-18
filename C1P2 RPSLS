@@ -1,0 +1,31 @@
+# Rock-paper-scissors-lizard-Spock
+
+import random
+
+rpsls_list = ['rock', 'Spock', 'paper', 'lizard', 'scissors']
+
+def name_to_number(name):
+    return rpsls_list.index(name)
+
+def number_to_name(number):
+    return rpsls_list[number]
+              
+def rpsls(player_choice): 
+    print ''
+    if player_choice not in rpsls_list:
+        print 'Invalid Choice'
+        return
+
+    player_number = name_to_number(player_choice)
+    comp_number = random.randrange(0,5)
+    comp_choice = number_to_name(comp_number)
+    
+    print('Player chooses ' + player_choice)
+    print('Computer chooses ' + comp_choice)
+   
+    if player_number - comp_number == 0:
+        print('Player and computer tie!')
+    elif ((player_number - comp_number)%5) == 1 or ((player_number - comp_number)%5) == 2:
+        print('Player wins!')
+    elif ((player_number - comp_number)%5) == 3 or ((player_number - comp_number)%5) == 4:        
+        print('Computer wins!')
