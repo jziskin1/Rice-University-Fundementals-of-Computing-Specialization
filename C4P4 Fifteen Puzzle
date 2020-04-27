@@ -1,0 +1,440 @@
+"""
+Loyd's Fifteen puzzle - solver and visualizer
+Note that solved configuration has the blank (zero) tile in upper left
+Use the arrows key to swap this tile with its neighbors
+"""
+
+import poc_fifteen_gui
+
+class Puzzle:
+    """
+    Class representation for the Fifteen puzzle
+    """
+
+    def __init__(self, puzzle_height, puzzle_width, initial_grid=None):
+        """
+        Initialize puzzle with default height and width
+        Returns a Puzzle object
+        """
+        self._height = puzzle_height
+        self._width = puzzle_width
+        self._grid = [[col + puzzle_width * row
+                       for col in range(self._width)]
+                      for row in range(self._height)]
+
+        if initial_grid != None:
+            for row in range(puzzle_height):
+                for col in range(puzzle_width):
+                    self._grid[row][col] = initial_grid[row][col]
+
+    def __str__(self):
+        """
+        Generate string representaion for puzzle
+        Returns a string
+        """
+        ans = ""
+        for row in range(self._height):
+            ans += str(self._grid[row])
+            ans += "\n"
+        return ans
+
+    #####################################
+    # GUI methods
+
+    def get_height(self):
+        """
+        Getter for puzzle height
+        Returns an integer
+        """
+        return self._height
+
+    def get_width(self):
+        """
+        Getter for puzzle width
+        Returns an integer
+        """
+        return self._width
+
+    def get_number(self, row, col):
+        """
+        Getter for the number at tile position pos
+        Returns an integer
+        """
+        return self._grid[row][col]
+
+    def set_number(self, row, col, value):
+        """
+        Setter for the number at tile position pos
+        """
+        self._grid[row][col] = value
+
+    def clone(self):
+        """
+        Make a copy of the puzzle to update during solving
+        Returns a Puzzle object
+        """
+        new_puzzle = Puzzle(self._height, self._width, self._grid)
+        return new_puzzle
+
+    ########################################################
+    # Core puzzle methods
+
+    def current_position(self, solved_row, solved_col):
+        """
+        Locate the current position of the tile that will be at
+        position (solved_row, solved_col) when the puzzle is solved
+        Returns a tuple of two integers        
+        """
+        solved_value = (solved_col + self._width * solved_row)
+
+        for row in range(self._height):
+            for col in range(self._width):
+                if self._grid[row][col] == solved_value:
+                    return (row, col)
+        assert False, "Value " + str(solved_value) + " not found"
+
+    def update_puzzle(self, move_string):
+        """
+        Updates the puzzle state based on the provided move string
+        """
+        zero_row, zero_col = self.current_position(0, 0)
+        for direction in move_string:
+            if direction == "l":
+                assert zero_col > 0, "move off grid: " + direction
+                self._grid[zero_row][zero_col] = self._grid[zero_row][zero_col - 1]
+                self._grid[zero_row][zero_col - 1] = 0
+                zero_col -= 1
+            elif direction == "r":
+                assert zero_col < self._width - 1, "move off grid: " + direction
+                self._grid[zero_row][zero_col] = self._grid[zero_row][zero_col + 1]
+                self._grid[zero_row][zero_col + 1] = 0
+                zero_col += 1
+            elif direction == "u":
+                assert zero_row > 0, "move off grid: " + direction
+                self._grid[zero_row][zero_col] = self._grid[zero_row - 1][zero_col]
+                self._grid[zero_row - 1][zero_col] = 0
+                zero_row -= 1
+            elif direction == "d":
+                assert zero_row < self._height - 1, "move off grid: " + direction
+                self._grid[zero_row][zero_col] = self._grid[zero_row + 1][zero_col]
+                self._grid[zero_row + 1][zero_col] = 0
+                zero_row += 1
+            else:
+                assert False, "invalid direction: " + direction
+
+    ##################################################################
+    # Phase one methods
+
+    def lower_row_invariant(self, target_row, target_col):
+        """
+        Check whether the puzzle satisfies the specified invariant
+        at the given position in the bottom rows of the puzzle (target_row > 1)
+        Returns a boolean
+        """
+        # Test that the 0 square is in target square
+        if self.get_number(target_row, target_col) != 0:
+            return False
+        
+        # Test that all tiles to the right of target are solved
+        for col in range(target_col + 1, self.get_width()):
+            solved_value = (col + self.get_width() * target_row)
+            if self.get_number(target_row, col) != solved_value:
+                return False
+        
+        # Test that all tiles below the target are solved
+        for row in range(target_row + 1, self.get_height()):
+            for col in range(0, self.get_width()):
+                solved_value = (col + self.get_width() * row)
+                if self.get_number(row, col) != solved_value:
+                    return False
+      
+        return True
+
+    def solve_interior_tile(self, target_row, target_col):
+        """
+        Place correct tile at target position
+        Updates puzzle and returns a move string
+        """
+        # Locate correct tile
+        correct_tile_position = self.current_position(target_row, target_col)
+        vert_dist = target_row - correct_tile_position[0]
+        hor_dist = target_col - correct_tile_position[1]
+        
+        # Create solution string
+        answer = ''
+        
+        # Checks if correct tile is directly above target. Moves to target.
+        if vert_dist == 1 and hor_dist == 0:
+            answer = 'uld'
+        
+        # Checks if correct tile is directly above and 1 unit to the left of target. Moves to target.
+        elif vert_dist == 1 and hor_dist == 1:
+            answer = 'lurdl'
+        
+        # Checks if correct tile is in the target row. Moves to target.
+        elif vert_dist == 0:
+            answer = 'l' * hor_dist + 'urrdl' * (hor_dist - 1)
+        
+        # Checks if correct tile is to the right of target position. Moves to target.
+        elif hor_dist < 0:
+            answer += 'u' * vert_dist
+            answer += 'r' * (-hor_dist - 1)
+            if vert_dist == 1:
+                answer += 'rulld' * -hor_dist
+            else:
+                answer += 'rdllu' * -hor_dist
+            answer += 'druld' * vert_dist
+            
+        # Checks if correct tile is to the left of and above target position or in the same column. Moves to target.
+        elif hor_dist >= 0 and vert_dist > 0:
+            answer += 'u' * vert_dist
+            answer += 'l' * hor_dist
+            if hor_dist >= 1:
+                answer += 'drrul' * (hor_dist - 1)
+                answer += 'druld' * vert_dist
+            if hor_dist == 0:
+                answer += 'ld'
+                answer += 'druld' * (vert_dist - 1)
+                
+        self.update_puzzle(answer)            
+        return answer
+
+    def solve_col0_tile(self, target_row):
+        """
+        Solve tile in column zero on specified row (> 1)
+        Updates puzzle and returns a move string
+        """
+        # Locate correct tile
+        correct_tile_position = self.current_position(target_row, 0)
+        vert_dist = target_row - correct_tile_position[0]
+        hor_dist = correct_tile_position[1]
+        
+        # Create solution string
+        answer = ''
+        
+        # Checks if correct tile is within two squares of the target. Moves to target.
+        if vert_dist == 1 and hor_dist == 0:
+            answer += 'u'
+            answer += 'r' * (self.get_width() - 1)
+            self.update_puzzle(answer)            
+            return answer
+        elif vert_dist == 2 and hor_dist == 0:
+            answer += 'u'
+        elif vert_dist == 1 and hor_dist == 1:
+            answer += 'uruld'
+        
+        # Checks if correct tile is in row above target. Moves to target.
+        elif vert_dist == 1:
+            answer += 'u'
+            answer += 'r' * hor_dist
+            answer += 'ulldr' * (hor_dist - 1)
+            answer += 'uld'
+
+        # Checks if correct tile is in same column as target. Moves to target.
+        elif hor_dist == 0:
+            answer += 'u' * (vert_dist - 1)
+            answer += 'urddl' * (vert_dist - 2)
+            
+        # Moves all other possible positions to target.        
+        else:
+            answer += 'u' * vert_dist + 'r' * hor_dist
+            answer += 'dllur' * (hor_dist - 1)
+            answer += 'dlurd' * (vert_dist - 2)
+            answer += 'dl'
+            
+        # 3 x 2 solving and move the 0 to correct pos    
+        answer += 'drulurddlu'       
+        answer += 'r' * (self.get_width() - 1)
+        self.update_puzzle(answer)            
+        return answer
+
+    #############################################################
+    # Phase two methods
+
+    def row0_invariant(self, target_col):
+        """
+        Check whether the puzzle satisfies the row zero invariant
+        at the given column (col > 1)
+        Returns a boolean
+        """
+        # Test that the 0 square is in target square
+        if self.get_number(0, target_col) != 0:
+            return False
+        
+        # Test that tile directly below target is solved
+        solved_value = (target_col + self.get_width())
+        if self.get_number(1, target_col) != solved_value:
+            return False        
+        
+        # Test that all tiles to the right of target are solved
+        for row in range(0,2):
+            for col in range(target_col + 1, self.get_width()):
+                solved_value = (col + self.get_width() * row)
+                if self.get_number(row, col) != solved_value:
+                    return False
+        
+        # Test that all tiles below the target are solved
+        for row in range(2, self.get_height()):
+            for col in range(0, self.get_width()):
+                solved_value = (col + self.get_width() * row)
+                if self.get_number(row, col) != solved_value:
+                    return False
+                
+        return True
+
+    def row1_invariant(self, target_col):
+        """
+        Check whether the puzzle satisfies the row one invariant
+        at the given column (col > 1)
+        Returns a boolean
+        """
+        # Test that the 0 square is in target square
+        if self.get_number(1, target_col) != 0:
+            return False  
+        
+        # Test that all tiles to the right of target are solved
+        for row in range(0,2):
+            for col in range(target_col + 1, self.get_width()):
+                solved_value = (col + self.get_width() * row)
+                if self.get_number(row, col) != solved_value:
+                    return False
+        
+        # Test that all tiles below the target are solved
+        for row in range(2, self.get_height()):
+            for col in range(0, self.get_width()):
+                solved_value = (col + self.get_width() * row)
+                if self.get_number(row, col) != solved_value:
+                    return False
+                
+        return True
+
+    def solve_row0_tile(self, target_col):
+        """
+        Solve the tile in row zero at the specified column
+        Updates puzzle and returns a move string
+        """
+        # Locate correct tile
+        correct_tile_position = self.current_position(0, target_col)
+        vert_dist = correct_tile_position[0]
+        hor_dist = target_col - correct_tile_position[1]
+        
+        # Create solution string
+        answer = ''
+        
+        # Checks if correct tile directly to the left of target. Moves to target.
+        if vert_dist == 0 and hor_dist == 1:
+            self.update_puzzle('ld')            
+            return 'ld'            
+        
+        # Checks if correct tile is in row below target.
+        elif vert_dist == 1:
+            answer += 'l' * hor_dist
+            if hor_dist == 1:
+                answer += 'dlu'
+            else:
+                answer += 'drul' 
+            
+        # Checks if correct tile is in same row as target.
+        elif vert_dist == 0:
+            answer += 'l' * hor_dist
+            
+        # Accounts for horizontal distances greater than 2
+        if hor_dist > 2:
+            answer += 'drrul' * (hor_dist - 2)
+        
+        # Applys final alogrithm and updates puzzle
+        answer += 'rrdluldrruld'
+        self.update_puzzle(answer)            
+        return answer
+    
+    def solve_row1_tile(self, target_col):
+        """
+        Solve the tile in row one at the specified column
+        Updates puzzle and returns a move string
+        """
+        # Locate correct tile
+        correct_tile_position = self.current_position(1, target_col)
+        vert_dist = 1 - correct_tile_position[0]
+        hor_dist = target_col - correct_tile_position[1]
+        
+        # Create solution string
+        answer = ''
+        
+        # Checks if correct tile directly above target. Moves to target.
+        if vert_dist == 1 and hor_dist == 0:
+            self.update_puzzle('u')            
+            return 'u'
+            
+        # Checks if correct tile is in the same row as target.
+        elif vert_dist == 0:
+            answer += 'l' * (hor_dist - 1)
+             
+        # Checks if correct tile is one column above target.
+        elif vert_dist == 1:
+            answer += 'l' * hor_dist
+            answer += 'urd'
+            
+        # Moves any correct tile that hasn't returned to target.   
+        answer += 'lurrd' * (hor_dist - 1)
+        answer += 'lur'
+        
+        self.update_puzzle(answer)            
+        return answer
+
+    ###########################################################
+    # Phase 3 methods
+
+    def solve_2x2(self):
+        """
+        Solve the upper left 2x2 part of the puzzle
+        Updates the puzzle and returns a move string
+        """
+        # Create solution string
+        answer = ''
+        
+        if self.get_number(0,0) == 1:
+            answer += 'ul'
+        elif self.get_number(0,1) == 1:
+            answer += 'lu'
+        else:
+            answer += 'uldrul'
+            
+        self.update_puzzle(answer)            
+        return answer
+
+    def solve_puzzle(self):
+        """
+        Generate a solution string for a puzzle
+        Updates the puzzle and returns a move string
+        """
+        # Create moves string
+        moves = ''        
+        
+        # Locate 0 and move to bottom right corner
+        zero_pos = self.current_position(0,0)
+        vert_dis = (self.get_width() - 1) - zero_pos[0]
+        hor_dis = (self.get_height() - 1) - zero_pos[1]
+        moves += 'd' * vert_dis + 'r' * hor_dis
+        self.update_puzzle(moves)
+        
+        for row in range(self.get_height()-1, 1, -1):
+            for col in range(self.get_width()-1, -1, -1):
+                assert self.lower_row_invariant(row,col)
+                if col > 0:
+                    moves += self.solve_interior_tile(row, col)
+                else:
+                    moves += self.solve_col0_tile(row)
+                        
+        for col in range(self.get_width()-1, 1, -1):
+            assert self.row1_invariant(col)
+            moves += self.solve_row1_tile(col)
+            assert self.row0_invariant(col)
+            moves += self.solve_row0_tile(col)
+            
+        assert self.row1_invariant(1)    
+        moves += self.solve_2x2()
+        
+        return moves
+            
+# Start interactive simulation
+# poc_fifteen_gui.FifteenGUI(Puzzle(5, 5))
