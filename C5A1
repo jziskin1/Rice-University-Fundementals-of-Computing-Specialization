@@ -19,7 +19,6 @@ def load_graph(graph_url):
     """
     Function that loads a graph given the URL
     for a text representation of the graph
-
     Returns a dictionary that models a graph
     """
     graph_file = urllib.request.urlopen(graph_url)
@@ -88,6 +87,7 @@ def normalize_distribution(distribution):
 # citation_idd = in_degree_distribution(citation_graph)
 # citation_normal_idd = normalize_distribution(citation_idd)
 
+
 # Create Log/log plot
 # x = sorted(citation_normal_idd.keys())
 # y = [citation_normal_idd[k] for k in x]
@@ -113,40 +113,24 @@ def directed_er_graph(n, p):
     graph at random. A node will map to another node
     with probability p.
     """
-    V = [i for i in range(n)]
-    E = set([])
-    for in_node in V:
-        for out_node in V:
+    digraph = {}
+    for node in range(n):
+        digraph[node] = set([])
+    for in_node in range(n):
+        for out_node in range(n):
             if in_node != out_node:
                 a = random.random()
                 if a < p:
-                    E = E.union({(in_node, out_node)})
-    return V, E
+                    digraph[in_node].add(out_node)
+    return digraph
 
 
-def er_graph_to_adjacency_dict(directed_er):
-    """
-    Takes a set of nodes and edges and returns
-    an adjacency dictionary.
-    """
-    nodes = directed_er[0]
-    edges = directed_er[1]
-    dictionary = {}
-    for node in nodes:
-        dictionary[node] = set([])
-    for starting_node, ending_node in edges:
-        dictionary[starting_node].add(ending_node)
-    return dictionary
-
-
-# a = directed_er_graph(100, 0.5)
+# a = directed_er_graph(10, 0.5)
 # print(a)
-# b = er_graph_to_adjacency_dict(a)
+# b = in_degree_distribution(a)
 # print(b)
-# c = in_degree_distribution(b)
+# c = normalize_distribution(b)
 # print(c)
-# d = normalize_distribution(c)
-# print(d)
 
 
 # x = sorted(d.keys())
