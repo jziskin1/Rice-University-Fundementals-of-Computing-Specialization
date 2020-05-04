@@ -1,0 +1,214 @@
+"""
+Application #3 from Alogrithmic Thinking (Part 2)
+Note in order to complete this Application
+you must import functions from project 3 and
+alg_project3_viz
+"""
+
+# general imports
+import random
+import alg_cluster
+import timeit
+from matplotlib import pyplot as plt
+from C6P3 import pair_distance, slow_closest_pair, fast_closest_pair, closest_pair_strip, hierarchical_clustering, kmeans_clustering
+import alg_project3_viz
+###################################
+
+
+def gen_random_clusters(num_clusters):
+    cluster_list = []
+    for i in range(num_clusters):
+        cluster_list.append(alg_cluster.Cluster(
+            set([i]), 2 * random.random() - 1, 2 * random.random() - 1, 1, 1))
+    return cluster_list
+
+
+def time_functions(func, x_start, x_end):
+    result = []
+    for point in range(x_start, x_end + 1):
+        start = timeit.default_timer()
+        func(gen_random_clusters(point))
+        stop = timeit.default_timer()
+        result.append(stop - start)
+    return result
+
+
+def efficiency_trials(func1, func2, x_start, x_end, func1_label=None, func2_label=None, x_label=None):
+    x = range(x_start, x_end + 1)
+    y_slow = time_functions(func1, x_start, x_end)
+    y_fast = time_functions(func2, x_start, x_end)
+    plt.plot(x, y_slow, label=func1_label)
+    plt.plot(x, y_fast, label=func2_label)
+    plt.xlabel(x_label)
+    plt.ylabel('Running time in seconds')
+    plt.title("Comparison of Functions' Running Time")
+    plt.legend()
+    plt.plot()
+    plt.show()
+
+
+# efficiency_trials(slow_closest_pair, fast_closest_pair, 2, 200, func1_label="Slow Closest Pair Function", func2_label="Fast Closest Pair Function", x_label="Number of points")
+
+# Answer to Question 1
+'''
+jpeg of graph above
+'''
+############################################################################
+# Answers to Questions 2 & 3
+
+# cluster_list = alg_project3_solution.hierarchical_clustering(singleton_list, 15)
+
+# cluster_list = alg_project3_solution.kmeans_clustering(singleton_list, 15, 5)
+
+# run_example()
+
+'''
+jpeg of graphs
+'''
+############################################################################
+# Answers to Question 4
+
+'''
+K means clustering runs at a significantly faster rate than hierarchical clustering.
+This is because the hierarchical clustering function makes significantly more calls to
+the fast_closest_pair function than the k means clustering function does when k is
+small.
+'''
+############################################################################
+# Answers to Questions 5 & 6
+
+# In run_example() data_table = load_data_table(DATA_111_URL)
+
+# cluster_list = alg_project3_solution.hierarchical_clustering(singleton_list, 9)
+
+# cluster_list = alg_project3_solution.kmeans_clustering(singleton_list, 9, 5)
+
+# run_example()
+
+'''
+jpeg of graphs
+'''
+############################################################################
+
+
+DIRECTORY = "http://commondatastorage.googleapis.com/codeskulptor-assets/"
+DATA_3108_URL = DIRECTORY + "data_clustering/unifiedCancerData_3108.csv"
+DATA_896_URL = DIRECTORY + "data_clustering/unifiedCancerData_896.csv"
+DATA_290_URL = DIRECTORY + "data_clustering/unifiedCancerData_290.csv"
+DATA_111_URL = DIRECTORY + "data_clustering/unifiedCancerData_111.csv"
+
+# data_url = DATA_111_URL
+# data_table = alg_project3_viz.load_data_table(data_url)
+
+# singleton_list = []
+# for line in data_table:
+#     singleton_list.append(alg_cluster.Cluster(
+#         set([line[0]]), line[1], line[2], line[3], line[4]))
+
+# cluster_lst = hierarchical_clustering(singleton_list, 9)
+# cluster_lst = kmeans_clustering(singleton_list, 9, 5)
+
+
+def compute_distortion(cluster_list, data_table):
+    distortion = 0
+    for cluster in cluster_list:
+        distortion += cluster.cluster_error(data_table)
+    return distortion
+
+
+#print(compute_distortion(cluster_lst, data_table))
+
+# Answer to Question 7
+
+'''
+Hierarchical clustering the 111 counties into 9 clusters
+results in a distortion of 175163886915.8305 or 1.7516 * 10^11.
+K means clustering the 111 counties into 9 cluster through
+5 iterations results in a  distortion of 271254226924.20047 or
+2.7125 * 10^11.
+'''
+############################################################################
+
+# Answer to Question 8
+'''
+The Hierarchical clusters created 3 large clusters on the west coast around
+where San Diego, LA, and Seattle are. This is no surprise as these are 3 of the
+largest population centers on the west coast. The K means clustering joined Seattle
+and LA's cluster into one northern California cluster and created a 4th additional
+west coast cluster in Arizona due to the averaging out of the southern California
+and Colorado clusters. As a result, these clusters end up pretty far away from any
+central population hub and cause a large error for the K means clusters.
+'''
+############################################################################
+
+# Answer to Question 9
+'''
+Hierarchical clustering worked out pretty well and didn't need supervision.
+K means does because after several iterations the clusters strayed away from
+the riskiest areas with the highest population and resulted in a larger error.
+'''
+############################################################################
+
+# data_url = DATA_111_URL
+# data_url = DATA_290_URL
+# data_url = DATA_896_URL
+# data_table = alg_project3_viz.load_data_table(data_url)
+
+
+def dt_to_clusters():
+    singleton_list = []
+    for line in data_table:
+        singleton_list.append(alg_cluster.Cluster(
+            set([line[0]]), line[1], line[2], line[3], line[4]))
+    return singleton_list
+
+
+def quality_trials_h(cluster_list):
+    result = []
+    for num_clusters in range(20, 5, -1):
+        cluster_list = hierarchical_clustering(cluster_list, num_clusters)
+        dist = compute_distortion(cluster_list, data_table)
+        result = [dist] + result
+    return result
+
+
+def quality_trials_k(cluster_list):
+    result = []
+    for num_clusters in range(6, 21):
+        clustered_list = kmeans_clustering(cluster_list, num_clusters, 5)
+        dist = compute_distortion(clustered_list, data_table)
+        result.append(dist)
+    print(result)
+    return result
+
+
+def plot_qualities():
+    x = range(6, 21)
+    y_h = quality_trials_h(dt_to_clusters())
+    y_k = quality_trials_k(dt_to_clusters())
+    plt.plot(x, y_h, label='Heirarchical clustering')
+    plt.plot(x, y_k, label='K means clustering (5 iterations)')
+    plt.xlabel('Number of clusters')
+    plt.ylabel('Distortion Error')
+    plt.title("Comparison of Distortion Errors over Clusters (896 counties)")
+    plt.legend()
+    plt.plot()
+    plt.show()
+
+
+# plot_qualities()
+
+# Answer to Question 10
+'''
+3 jpegs using different datasets
+'''
+############################################################################
+# Answer to Question 11
+'''
+For 111 counties, Hierarchical clustering consistently results in a smaller
+distortion when compared to K means clustering. As the number of counties
+increase the distortion error between Hierarchical and K means clustering
+comes closer together. By the time the number of points is 896, the distortion
+difference is negligible.
+'''
+############################################################################
