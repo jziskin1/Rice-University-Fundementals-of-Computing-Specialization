@@ -6,8 +6,8 @@ import random
 # helper function to initialize globals
 def new_game():
     global state, exposed, turns, card_values, label
-    card_values = 2*range(0,8)
-    exposed = [False for index in range(0,16)]
+    card_values = 2*range(8)
+    exposed = [False for index in range(16)]
     state = 0
     turns = 0
     label.set_text("Turns = " + str(turns))
