@@ -1,0 +1,291 @@
+"""
+Application #4 Algorithmic Thinking (Part 2)
+"""
+
+
+import math
+import random
+import urllib.request
+import matplotlib.pyplot as plt
+from C6P4 import build_scoring_matrix, compute_alignment_matrix, compute_global_alignment, compute_local_alignment
+
+
+# URLs for data files
+PAM50_URL = "http://storage.googleapis.com/codeskulptor-alg/alg_PAM50.txt"
+HUMAN_EYELESS_URL = "http://storage.googleapis.com/codeskulptor-alg/alg_HumanEyelessProtein.txt"
+FRUITFLY_EYELESS_URL = "http://storage.googleapis.com/codeskulptor-alg/alg_FruitflyEyelessProtein.txt"
+CONSENSUS_PAX_URL = "http://storage.googleapis.com/codeskulptor-alg/alg_ConsensusPAXDomain.txt"
+WORD_LIST_URL = "http://storage.googleapis.com/codeskulptor-assets/assets_scrabble_words3.txt"
+
+
+###############################################
+# provided code
+
+def read_scoring_matrix(filename):
+    """
+    Read a scoring matrix from the file named filename.
+
+    Argument:
+    filename -- name of file containing a scoring matrix
+
+    Returns:
+    A dictionary of dictionaries mapping X and Y characters to scores
+    """
+    scoring_dict = {}
+    scoring_file = urllib.request.urlopen(filename)
+    ykeys = scoring_file.readline()
+    ykeychars = ykeys.decode('utf-8').split()
+    for line in scoring_file.readlines():
+        vals = line.decode('utf-8').split()
+        xkey = vals.pop(0)
+        scoring_dict[xkey] = {}
+        for ykey, val in zip(ykeychars, vals):
+            scoring_dict[xkey][ykey] = int(val)
+    return scoring_dict
+
+
+def read_protein(filename):
+    """
+    Read a protein sequence from the file named filename.
+
+    Arguments:
+    filename -- name of file containing a protein sequence
+
+    Returns:
+    A string representing the protein
+    """
+    protein_file = urllib.request.urlopen(filename)
+    protein_seq = protein_file.read().decode('utf-8')
+    protein_seq = protein_seq.rstrip()
+    return protein_seq
+
+
+def read_words(filename):
+    """
+    Load word list from the file named filename.
+
+    Returns a list of strings.
+    """
+    # load assets
+    word_file = urllib.request.urlopen(filename)
+
+    # read in files as string
+    words = word_file.read().decode('utf-8')
+
+    # template lines and solution lines list of line string
+    word_list = words.split('\n')
+    print("Loaded a dictionary with", len(word_list), "words")
+    return word_list
+
+
+PAM50_sm = read_scoring_matrix(PAM50_URL)
+hum_protein = read_protein(HUMAN_EYELESS_URL)
+ff_protein = read_protein(FRUITFLY_EYELESS_URL)
+hum_ff_am = compute_alignment_matrix(hum_protein, ff_protein, PAM50_sm, False)
+hum_ff_la = compute_local_alignment(
+    hum_protein, ff_protein, PAM50_sm, hum_ff_am)
+# print(hum_ff_la)
+
+# Answer to Question 1
+'''
+(875,
+'HSGVNQLGGVFVNGRPLPDSTRQKIVELAHSGARPCDISRILQVSNGCVSKILGRYYETGSIRPRAI
+GGSKPRVATPEVVSKIAQYKRECPSIFAWEIRDRLLSEGVCTNDNIPSVSSINRVLRNLASEK-QQ',
+'HSGVNQLGGVFVGGRPLPDSTRQKIVELAHSGARPCDISRILQVSNGCVSKILGRYYETGSIRPRAI
+GGSKPRVATAEVVSKISQYKRECPSIFAWEIRDRLLQENVCTNDNIPSVSSINRVLRNLAAQKEQQ')
+'''
+############################################################################
+
+
+def dashless_seq(sequence):
+    '''
+    Takes a sequence string and returns a dashless string
+    '''
+    result = ''
+    for char in sequence:
+        if char != '-':
+            result += char
+    return result
+
+
+def percent_matching(seq1, seq2):
+    '''
+    Takes 2 sequences of equal length
+    Returns the percentage of letters that match
+    '''
+    if len(seq1) != len(seq2):
+        return 'Sequences are not same length'
+    matches = 0
+    total = len(seq1)
+    for idx in range(total):
+        if seq1[idx] == seq2[idx]:
+            matches += 1
+    return matches / total * 100
+
+
+# hum_local_sequence = 'HSGVNQLGGVFVNGRPLPDSTRQKIVELAHSGARPCDISRILQVSNGCVSKILGRYYETGSIRPRAIGGSKPRVATPEVVSKIAQYKRECPSIFAWEIRDRLLSEGVCTNDNIPSVSSINRVLRNLASEK-QQ'
+# ff_local_sequence = 'HSGVNQLGGVFVGGRPLPDSTRQKIVELAHSGARPCDISRILQVSNGCVSKILGRYYETGSIRPRAIGGSKPRVATAEVVSKISQYKRECPSIFAWEIRDRLLQENVCTNDNIPSVSSINRVLRNLAAQKEQQ'
+
+
+# hum_local_sequence_nodash = dashless_seq(hum_local_sequence)
+# ff_local_sequence_nodash = dashless_seq(ff_local_sequence)
+
+
+# con_pax_dom = read_protein(CONSENSUS_PAX_URL)
+
+
+# hum_con_am = compute_alignment_matrix(
+#     hum_local_sequence_nodash, con_pax_dom, PAM50_sm, True)
+# hum_con_ga = compute_global_alignment(
+#     hum_local_sequence_nodash, con_pax_dom, PAM50_sm, hum_con_am)
+# hum_percent_match = percent_matching(hum_con_ga[1], hum_con_ga[2])
+
+
+# ff_con_am = compute_alignment_matrix(
+#     ff_local_sequence_nodash, con_pax_dom, PAM50_sm, True)
+# ff_con_ga = compute_global_alignment(
+#     ff_local_sequence_nodash, con_pax_dom, PAM50_sm, ff_con_am)
+# ff_percent_match = percent_matching(ff_con_ga[1], ff_con_ga[2])
+
+
+# print(hum_percent_match)  # 72.93233082706767%
+# print(ff_percent_match)  # 70.1492537313433%
+
+'''
+Answers to Question 2
+The global aligment of the human eyeless protein local sequence and the consensus pax domain has a match rate of 72.9%.
+The global aligment of the firefly eyeless protein local sequence and the consensus pax domain has a match rate of 70.1%.
+'''
+############################################################################
+'''
+Answers to Question 3
+Given the length of the sequences and the number of characters to choose from,
+it is astronomically unlikely that a match of 70% occurred by chance.
+'''
+############################################################################
+
+
+def generate_null_distribution(seq_x, seq_y, scoring_matrix, num_trials):
+    '''
+    Takes two sequences, a scoring matrix, and the number of trials.
+    For each trial, y is randomized and local alignment is conducted.
+    The results are logged in the result as a dictionary
+    '''
+    result = {}
+    for dummy_idx in range(num_trials):
+        rand_y_lst = list(seq_y)
+        random.shuffle(rand_y_lst)
+        rand_y = ''.join(rand_y_lst)
+        align_mat = compute_alignment_matrix(
+            seq_x, rand_y, scoring_matrix, False)
+        score = compute_local_alignment(
+            seq_x, rand_y, scoring_matrix, align_mat)[0]
+        if score in result:
+            result[score] += 1
+        else:
+            result[score] = 1
+
+    return result
+
+
+# print(generate_null_distribution(hum_protein, ff_protein, PAM50_sm, 1000))
+result = {42: 20, 45: 49, 48: 57, 46: 61, 65: 12, 49: 85, 43: 44, 50: 73, 52: 66, 54: 44, 41: 13, 62: 12, 55: 39, 64: 6, 59: 26, 58: 22, 60: 17, 47: 55, 53: 50,
+          44: 46, 51: 64, 38: 3, 61: 22, 56: 27, 57: 27, 66: 10, 71: 4, 69: 3, 67: 6, 63: 11, 40: 5, 68: 3, 72: 4, 75: 4, 70: 2, 73: 2, 74: 1, 81: 2, 76: 1, 97: 1, 82: 1}
+
+# x_vals = [key for key in result]
+# y_vals = [result[key] / 1000 for key in result]
+
+# plt.bar(x_vals, y_vals)
+# plt.title('Null Distribution of 1000 trials of Human and Randomized Fruitfly Eyeless Protein Matching')
+# plt.xlabel('Score')
+# plt.ylabel("Proportion of Trials")
+# plt.grid(True)
+# plt.tight_layout()
+# plt.show()
+
+'''
+Answer to Question 4
+
+jpeg of graph
+'''
+############################################################################
+
+
+def calculate_mean_and_sd(distribution):
+    '''
+    Takes a distribution dictionary and
+    returns a mean and standard deviation.
+    '''
+    mean = 0
+    total = sum([distribution[key] for key in distribution])
+    for key in distribution:
+        mean += distribution[key] * key
+    mean /= total
+    sd = 0
+    for key in distribution:
+        sd += distribution[key] * (key - mean) ** 2
+    sd = (sd / total) ** (1 / 2)
+    return mean, sd
+
+# print(calculate_mean_and_sd(result))
+
+
+# z = (875 - 51.563) / 6.967641710076658 = 118.180158261
+
+'''
+Answer to Question 5
+
+
+Mean: 51.563
+SD: 6.967641710076658
+Z-score: 118.180158261
+'''
+############################################################################
+'''
+Answer to Question 6
+
+A z-score of 118 in an approximately normal shaped curve means that it is
+astronomically unlikely that the matching of Human and Fruitfly Eyeless protein
+was due to chance. You would have a better shot winning the lottery multiple
+times than having this outcome occur due to chance.
+'''
+############################################################################
+'''
+Answer to Question 7
+
+Diag score = 2
+Off diag score = 1
+Dash Score = 0
+'''
+############################################################################
+#word_list = read_words(WORD_LIST_URL)
+
+
+def check_spelling(checked_word, dist, word_list):
+    '''
+    Takes a word list, a word, and an edit distance.
+    Returns a set of words from the word list within
+    the edit distance of the word.
+    '''
+    result = set([])
+    scoring_matrix = build_scoring_matrix(set(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j',
+                                               'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']), 2, 1, 0)
+    for word in word_list:
+        alignment_matrix = compute_alignment_matrix(
+            checked_word, word, scoring_matrix, True)
+        global_alignment = compute_global_alignment(
+            checked_word, word, scoring_matrix, alignment_matrix)
+        if len(checked_word) + len(word) - global_alignment[0] <= dist:
+            result.add(dashless_seq(global_alignment[2]))
+    return result
+
+# print(check_spelling('humble',1,word_list))
+# print(check_spelling('firefly',2,word_list))
+
+
+'''
+Answer to Question 8
+
+check_spelling('humble',1,word_list): {'fumble', 'humbler', 'jumble', 'tumble', 'humble', 'humbles', 'mumble', 'bumble', 'rumble', 'humbly', 'humbled'}
+check_spelling('firefly',2,word_list): {'refly', 'firmly', 'firefly', 'liefly', 'tiredly', 'finely', 'fixedly', 'fireclay', 'freely', 'firstly', 'direly'}
+'''
