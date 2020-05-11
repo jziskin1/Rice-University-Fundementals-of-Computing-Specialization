@@ -103,7 +103,7 @@ class Ship:
         
     def update(self):
         self.angle += self.angle_vel
-        forward = [math.cos(self.angle),math.sin(self.angle)]
+        forward = angle_to_vector(self.angle)
         if not 0 < self.pos[0] < WIDTH:
             self.pos[0] = self.pos[0] % WIDTH
         if not 0 < self.pos[1] < HEIGHT:
