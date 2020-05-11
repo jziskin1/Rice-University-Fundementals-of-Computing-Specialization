@@ -1,0 +1,143 @@
+'''
+Project 4 Algorithmic Thinking (Part 2)
+'''
+
+# helper function
+
+
+def max_func(lst):
+    max_num = lst[0]
+    for num in lst[1:]:
+        if num > max_num:
+            max_num = num
+    return max_num
+
+
+def build_scoring_matrix(alphabet, diag_score, off_diag_score, dash_score):
+    '''
+    Takes a set of chars in alphabet and three scores.
+    Returns a dictionary of scores.
+    '''
+    chars = set(alphabet)
+    chars.add('-')
+    scoring_matrix = {}
+    for char1 in chars:
+        scoring_matrix[char1] = {}
+        for char2 in chars:
+            if char1 == '-' or char2 == '-':
+                scoring_matrix[char1][char2] = dash_score
+            elif char1 == char2:
+                scoring_matrix[char1][char2] = diag_score
+            else:
+                scoring_matrix[char1][char2] = off_diag_score
+    return scoring_matrix
+
+
+def compute_alignment_matrix(seq_x, seq_y, scoring_matrix, global_flag):
+    '''
+    Takes two string sequences and a scoring matrix.
+    If global flag is true it returns glocal score.
+    Otherwise returns local score.
+    '''
+    alignment_matrix = [[0 for dummy_idxy in range(
+        len(seq_y) + 1)] for dummy_idxx in range(len(seq_x) + 1)]
+    alignment_matrix[0][0] = 0
+    for row in range(1, len(seq_x) + 1):
+        alignment_matrix[row][0] = alignment_matrix[row -
+                                                    1][0] + scoring_matrix[seq_x[row - 1]]['-']
+        if not global_flag and alignment_matrix[row][0] < 0:
+            alignment_matrix[row][0] = 0
+
+    for col in range(1, len(seq_y) + 1):
+        alignment_matrix[0][col] = alignment_matrix[0][col -
+                                                       1] + scoring_matrix['-'][seq_y[col - 1]]
+        if not global_flag and alignment_matrix[0][col] < 0:
+            alignment_matrix[0][col] = 0
+
+    for row in range(1, len(seq_x) + 1):
+        for col in range(1, len(seq_y) + 1):
+            let_let = alignment_matrix[row - 1][col - 1] + \
+                scoring_matrix[seq_x[row - 1]][seq_y[col - 1]]
+            let_dash = alignment_matrix[row - 1][col] + \
+                scoring_matrix[seq_x[row - 1]]['-']
+            dash_let = alignment_matrix[row][col -
+                                             1] + scoring_matrix['-'][seq_y[col - 1]]
+            alignment_matrix[row][col] = max(let_let, let_dash, dash_let)
+            if not global_flag and alignment_matrix[row][col] < 0:
+                alignment_matrix[row][col] = 0
+    return alignment_matrix
+
+
+def compute_global_alignment(seq_x, seq_y, scoring_matrix, alignment_matrix):
+    '''
+    Takes two sequences, a scoring matrix, and a global alignment matrix.
+    Returns a tuple (score, align_x, align_y)
+    '''
+    idx_x = len(seq_x)
+    idx_y = len(seq_y)
+    score = alignment_matrix[idx_x][idx_y]
+    x_prime = ''
+    y_prime = ''
+    while idx_x != 0 and idx_y != 0:
+        if alignment_matrix[idx_x][idx_y] == alignment_matrix[idx_x - 1][idx_y - 1] + scoring_matrix[seq_x[idx_x - 1]][seq_y[idx_y - 1]]:
+            x_prime = seq_x[idx_x - 1] + x_prime
+            y_prime = seq_y[idx_y - 1] + y_prime
+            idx_x -= 1
+            idx_y -= 1
+        else:
+            if alignment_matrix[idx_x][idx_y] == alignment_matrix[idx_x - 1][idx_y] + scoring_matrix[seq_x[idx_x - 1]]['-']:
+                x_prime = seq_x[idx_x - 1] + x_prime
+                y_prime = '-' + y_prime
+                idx_x -= 1
+            else:
+                x_prime = '-' + x_prime
+                y_prime = seq_y[idx_y - 1] + y_prime
+                idx_y -= 1
+    while idx_x != 0:
+        x_prime = seq_x[idx_x - 1] + x_prime
+        y_prime = '-' + y_prime
+        idx_x -= 1
+
+    while idx_y != 0:
+        x_prime = '-' + x_prime
+        y_prime = seq_y[idx_y - 1] + y_prime
+        idx_y -= 1
+    return(score, x_prime, y_prime)
+
+
+def compute_local_alignment(seq_x, seq_y, scoring_matrix, alignment_matrix):
+    '''
+    Takes two sequences, a scoring matrix, and a local alignment matrix.
+    Returns a tuple (score, align_x, align_y)
+    '''
+    idx_x = 0
+    idx_y = 0
+    max_score = float('-inf')
+    x_prime = ''
+    y_prime = ''
+    for row in range(len(alignment_matrix)):
+        for col in range(len(alignment_matrix[row])):
+            if alignment_matrix[row][col] > max_score:
+                idx_x = row
+                idx_y = col
+                max_score = alignment_matrix[row][col]
+    while idx_x != 0 and idx_y != 0:
+        if alignment_matrix[idx_x][idx_y] == alignment_matrix[idx_x - 1][idx_y - 1] + scoring_matrix[seq_x[idx_x - 1]][seq_y[idx_y - 1]]:
+            x_prime = seq_x[idx_x - 1] + x_prime
+            y_prime = seq_y[idx_y - 1] + y_prime
+            idx_x -= 1
+            idx_y -= 1
+
+        else:
+            if alignment_matrix[idx_x][idx_y] == alignment_matrix[idx_x - 1][idx_y] + scoring_matrix[seq_x[idx_x - 1]]['-']:
+                x_prime = seq_x[idx_x - 1] + x_prime
+                y_prime = '-' + y_prime
+                idx_x -= 1
+
+            else:
+                x_prime = '-' + x_prime
+                y_prime = seq_y[idx_y - 1] + y_prime
+                idx_y -= 1
+        if alignment_matrix[idx_x][idx_y] == 0:
+            break
+    return(max_score, x_prime, y_prime)
